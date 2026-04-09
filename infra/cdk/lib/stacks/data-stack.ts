@@ -6,14 +6,25 @@ import { Construct } from 'constructs';
 import { EnvConfig, resourceName, commonTags } from '../config/env';
 import { MimiAurora } from '../constructs/aurora-cluster';
 
+/**
+ * DataStack のプロパティ
+ */
 export interface DataStackProps extends cdk.StackProps {
+  /** デプロイ先の VPC */
   vpc: ec2.IVpc;
+  /** Aurora 用のセキュリティグループ */
   auroraSg: ec2.ISecurityGroup;
 }
 
+/**
+ * データストア (S3, DynamoDB, Aurora) を構成するスタックです。
+ */
 export class DataStack extends cdk.Stack {
+  /** バックエンド用 S3 バケット */
   public readonly backendBucket: s3.Bucket;
+  /** タスク管理用 DynamoDB テーブル */
   public readonly tasksTable: dynamodb.Table;
+  /** Aurora Serverless クラスター */
   public readonly aurora: MimiAurora;
 
   constructor(scope: Construct, id: string, envConfig: EnvConfig, props: DataStackProps) {

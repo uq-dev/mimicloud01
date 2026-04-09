@@ -3,8 +3,13 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
 import { EnvConfig, resourceName, commonTags } from '../config/env';
 
+/**
+ * 認証基盤 (Cognito) を構成するスタックです。
+ */
 export class AuthStack extends cdk.Stack {
+  /** Cognito ユーザープール */
   public readonly userPool: cognito.UserPool;
+  /** フロントエンド向けユーザープールクライアント */
   public readonly userPoolClient: cognito.UserPoolClient;
 
   constructor(scope: Construct, id: string, envConfig: EnvConfig, props?: cdk.StackProps) {

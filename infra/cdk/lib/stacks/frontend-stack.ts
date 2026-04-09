@@ -5,8 +5,13 @@ import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import { Construct } from 'constructs';
 import { EnvConfig, resourceName, commonTags } from '../config/env';
 
+/**
+ * 静的コンテンツ配信 (S3 + CloudFront) を構成するスタックです。
+ */
 export class FrontendStack extends cdk.Stack {
+  /** フロントエンド静的ファイル公開用 S3 バケット */
   public readonly bucket: s3.Bucket;
+  /** CloudFront ディストリビューション */
   public readonly distribution: cloudfront.Distribution;
 
   constructor(scope: Construct, id: string, envConfig: EnvConfig, props?: cdk.StackProps) {

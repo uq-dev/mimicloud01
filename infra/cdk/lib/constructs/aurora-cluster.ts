@@ -5,15 +5,27 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import { EnvName, resourceName } from '../config/env';
 
+/**
+ * MimiAurora コンストラクトのプロパティ
+ */
 export interface MimiAuroraProps {
+  /** 環境名 */
   envName: EnvName;
+  /** デプロイ先の VPC */
   vpc: ec2.IVpc;
+  /** アタッチするセキュリティグループ */
   securityGroup: ec2.ISecurityGroup;
-  databaseName: string;  // 例: 'todo'
+  /** データベース名 (例: 'todo') */
+  databaseName: string;
 }
 
+/**
+ * Aurora Serverless v1 (PostgreSQL) を構成するカスタムコンストラクトです。
+ */
 export class MimiAurora extends Construct {
+  /** Aurora クラスター */
   public readonly cluster: rds.ServerlessCluster;
+  /** 管理者情報のシークレット */
   public readonly secret: secretsmanager.ISecret;
 
   constructor(scope: Construct, id: string, props: MimiAuroraProps) {

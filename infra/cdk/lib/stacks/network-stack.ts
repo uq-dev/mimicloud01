@@ -3,9 +3,15 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 import { EnvConfig, resourceName, commonTags } from '../config/env';
 
+/**
+ * ネットワーク基盤 (VPC, Subnet, SecurityGroup 等) を構成するスタックです。
+ */
 export class NetworkStack extends cdk.Stack {
+  /** 作成された VPC */
   public readonly vpc: ec2.Vpc;
+  /** Lambda 用の共通セキュリティグループ */
   public readonly lambdaSg: ec2.SecurityGroup;
+  /** Aurora 用の共通セキュリティグループ */
   public readonly auroraSg: ec2.SecurityGroup;
 
   constructor(scope: Construct, id: string, envConfig: EnvConfig, props?: cdk.StackProps) {

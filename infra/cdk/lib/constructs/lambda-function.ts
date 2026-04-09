@@ -6,21 +6,38 @@ import * as path from 'path';
 import { Construct } from 'constructs';
 import { EnvName, resourceName } from '../config/env';
 
+/**
+ * MimiLambda コンストラクトのプロパティ
+ */
 export interface MimiLambdaProps {
+  /** 環境名 */
   envName: EnvName;
-  functionName: string;       // 例: 'get-tasks'
-  assetPath: string;          // 例: 'lambda/get-tasks'
-  handler?: string;           // デフォルト: 'index.handler'
+  /** 関数名 (例: 'get-tasks') */
+  functionName: string;
+  /** ラムダソースコードのパス (例: 'lambda/get-tasks') */
+  assetPath: string;
+  /** ハンドラー名 (デフォルト: 'index.handler') */
+  handler?: string;
+  /** 配置先の VPC */
   vpc: ec2.IVpc;
+  /** アタッチするセキュリティグループ */
   securityGroup: ec2.ISecurityGroup;
-  // オプション（デフォルトあり）
-  memorySize?: number;        // デフォルト: 128
-  timeoutSeconds?: number;    // デフォルト: 3
+  /** メモリサイズ (デフォルト: 128) */
+  memorySize?: number;
+  /** タイムアウト時間 (秒) (デフォルト: 3) */
+  timeoutSeconds?: number;
+  /** 環境変数 */
   environment?: Record<string, string>;
 }
 
+/**
+ * Python ランタイムを使用する Lambda 関数を構成するカスタムコンストラクトです。
+ * CloudWatch Logs グループの作成と VPC 配置を自動的に行います。
+ */
 export class MimiLambda extends Construct {
+  /** Lambda 関数リソース */
   public readonly function: lambda.Function;
+  /** CloudWatch Logs グループ */
   public readonly logGroup: logs.LogGroup;
 
   constructor(scope: Construct, id: string, props: MimiLambdaProps) {

@@ -7,18 +7,33 @@ import { Construct } from 'constructs';
 import { EnvConfig, resourceName, commonTags } from '../config/env';
 import { MimiLambda } from '../constructs/lambda-function';
 
+/**
+ * BackendStack のプロパティ
+ */
 export interface BackendStackProps extends cdk.StackProps {
+  /** デプロイ先の VPC */
   vpc: ec2.IVpc;
+  /** Lambda 用のセキュリティグループ */
   lambdaSg: ec2.ISecurityGroup;
-  tasksTableName: string;   // ARNではなく名前で受け取る
+  /** タスク管理用 DynamoDB テーブル名 */
+  tasksTableName: string;
+  /** タスク管理用 DynamoDB ARN */
   tasksTableArn: string;
+  /** バックエンド用 S3 バケット名 */
   backendBucketName: string;
+  /** バックエンド用 S3 ARN */
   backendBucketArn: string;
+  /** 認証に使用する Cognito ユーザープール */
   userPool: cognito.IUserPool;
+  /** Aurora のシークレット ARN */
   auroraSecretArn: string;
 }
 
+/**
+ * バックエンド API (API Gateway + Lambda) を構成するスタックです。
+ */
 export class BackendStack extends cdk.Stack {
+  /** API Gateway リソース */
   public readonly api: apigateway.RestApi;
 
   constructor(scope: Construct, id: string, envConfig: EnvConfig, props: BackendStackProps) {
