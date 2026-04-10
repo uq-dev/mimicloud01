@@ -28,6 +28,8 @@ export interface MimiLambdaProps {
   timeoutSeconds?: number;
   /** 環境変数 */
   environment?: Record<string, string>;
+  /** リソースの削除ポリシー */
+  removalPolicy: cdk.RemovalPolicy;
 }
 
 /**
@@ -50,7 +52,7 @@ export class MimiLambda extends Construct {
     this.logGroup = new logs.LogGroup(this, 'LogGroup', {
       logGroupName: `/aws/lambda/${name}`,
       retention: logs.RetentionDays.ONE_MONTH,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: props.removalPolicy,
     });
     cdk.Tags.of(this.logGroup).add('Name', logGroupName);
 

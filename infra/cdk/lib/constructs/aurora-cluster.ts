@@ -17,6 +17,8 @@ export interface MimiAuroraProps {
   securityGroup: ec2.ISecurityGroup;
   /** データベース名 (例: 'todo') */
   databaseName: string;
+  /** リソースの削除ポリシー */
+  removalPolicy: cdk.RemovalPolicy;
 }
 
 /**
@@ -47,7 +49,7 @@ export class MimiAurora extends Construct {
         minCapacity: rds.AuroraCapacityUnit.ACU_2,
         maxCapacity: rds.AuroraCapacityUnit.ACU_8,
       },
-      removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
+      removalPolicy: props.removalPolicy,
       credentials: rds.Credentials.fromGeneratedSecret('auroraAdmin', {
         secretName: resourceName(props.envName, 'aurora-secret'),
       }),

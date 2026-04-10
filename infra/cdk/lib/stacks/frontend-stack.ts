@@ -28,8 +28,8 @@ export class FrontendStack extends cdk.Stack {
       bucketName: resourceName(envName, 's3-front'),
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      removalPolicy: envConfig.removalPolicy,
+      autoDeleteObjects: envConfig.removalPolicy === cdk.RemovalPolicy.DESTROY,
     });
     cdk.Tags.of(this.bucket).add('Name', resourceName(envName, 's3-front'));
 

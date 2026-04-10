@@ -35,7 +35,7 @@ export class AuthStack extends cdk.Stack {
         requireSymbols: false,
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: envConfig.removalPolicy,
     });
     cdk.Tags.of(this.userPool).add('Name', resourceName(envName, 'userpool'));
 

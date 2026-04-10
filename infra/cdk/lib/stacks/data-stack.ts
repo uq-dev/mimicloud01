@@ -41,7 +41,8 @@ export class DataStack extends cdk.Stack {
       bucketName: resourceName(envName, 's3-back'),
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      removalPolicy: envConfig.removalPolicy,
+      autoDeleteObjects: envConfig.removalPolicy === cdk.RemovalPolicy.DESTROY,
       versioned: true,
     });
     cdk.Tags.of(this.backendBucket).add('Name', resourceName(envName, 's3-back'));
@@ -52,7 +53,7 @@ export class DataStack extends cdk.Stack {
       tableName: resourceName(envName, 'dynamo', 'tasks'),
       partitionKey: { name: 'taskId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: envConfig.removalPolicy,
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: false },  // dev環境はオフ
     });
     cdk.Tags.of(this.tasksTable).add('Name', resourceName(envName, 'dynamo', 'tasks'));
@@ -63,6 +64,7 @@ export class DataStack extends cdk.Stack {
       vpc: props.vpc,
       securityGroup: props.auroraSg,
       databaseName: 'todo',
+      removalPolicy: envConfig.removalPolicy,
     });
 
     // Outputs

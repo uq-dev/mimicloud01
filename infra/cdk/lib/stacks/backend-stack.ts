@@ -61,6 +61,7 @@ export class BackendStack extends cdk.Stack {
       vpc: props.vpc,
       securityGroup: props.lambdaSg,
       environment: lambdaEnv,
+      removalPolicy: envConfig.removalPolicy,
     });
 
     const postTask = new MimiLambda(this, 'PostTaskLambda', {
@@ -70,6 +71,7 @@ export class BackendStack extends cdk.Stack {
       vpc: props.vpc,
       securityGroup: props.lambdaSg,
       environment: lambdaEnv,
+      removalPolicy: envConfig.removalPolicy,
     });
 
     const updateTask = new MimiLambda(this, 'UpdateTaskLambda', {
@@ -79,6 +81,7 @@ export class BackendStack extends cdk.Stack {
       vpc: props.vpc,
       securityGroup: props.lambdaSg,
       environment: lambdaEnv,
+      removalPolicy: envConfig.removalPolicy,
     });
 
     const deleteTask = new MimiLambda(this, 'DeleteTaskLambda', {
@@ -88,6 +91,7 @@ export class BackendStack extends cdk.Stack {
       vpc: props.vpc,
       securityGroup: props.lambdaSg,
       environment: lambdaEnv,
+      removalPolicy: envConfig.removalPolicy,
     });
 
     // DynamoDBアクセス権限（インラインポリシーで付与 → 循環依存を回避）
@@ -134,6 +138,7 @@ export class BackendStack extends cdk.Stack {
         allowHeaders: ['Content-Type', 'Authorization'],
       },
     });
+    this.api.applyRemovalPolicy(envConfig.removalPolicy);
     cdk.Tags.of(this.api).add('Name', resourceName(envName, 'apigw'));
 
     // ルーティング: /tasks

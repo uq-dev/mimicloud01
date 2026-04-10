@@ -1,3 +1,5 @@
+import * as cdk from 'aws-cdk-lib';
+
 /**
  * 環境名の型定義
  */
@@ -15,6 +17,8 @@ export interface EnvConfig {
   region: string;
   /** VPC の CIDR ブロック */
   vpcCidr: string;
+  /** リソースの削除ポリシー */
+  removalPolicy: cdk.RemovalPolicy;
 }
 
 /**
@@ -26,18 +30,21 @@ const configs: Record<EnvName, EnvConfig> = {
     account: process.env.CDK_DEFAULT_ACCOUNT ?? '',
     region: 'ap-northeast-1',
     vpcCidr: '10.0.0.0/16',
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
   },
   stg: {
     envName: 'stg',
     account: process.env.CDK_DEFAULT_ACCOUNT ?? '',
     region: 'ap-northeast-1',
     vpcCidr: '10.1.0.0/16',
+    removalPolicy: cdk.RemovalPolicy.RETAIN,
   },
   prd: {
     envName: 'prd',
     account: process.env.CDK_DEFAULT_ACCOUNT ?? '',
     region: 'ap-northeast-1',
     vpcCidr: '10.2.0.0/16',
+    removalPolicy: cdk.RemovalPolicy.RETAIN,
   },
 };
 
