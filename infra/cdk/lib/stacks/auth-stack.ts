@@ -39,6 +39,13 @@ export class AuthStack extends cdk.Stack {
     });
     cdk.Tags.of(this.userPool).add('Name', resourceName(envName, 'userpool'));
 
+    // Cognito UserPool Domain
+    const domain = this.userPool.addDomain('UserPoolDomain', {
+      cognitoDomain: {
+        domainPrefix: envConfig.cognitoDomainPrefix,
+      },
+    });
+
     // UserPool Client（フロントエンド用）
     this.userPoolClient = this.userPool.addClient('WebClient', {
       userPoolClientName: resourceName(envName, 'userpool', 'web-client'),
@@ -48,11 +55,19 @@ export class AuthStack extends cdk.Stack {
       oAuth: {
         flows: { authorizationCodeGrant: true },
         scopes: [cognito.OAuthScope.EMAIL, cognito.OAuthScope.OPENID, cognito.OAuthScope.PROFILE],
+        callbackUrls: envConfig.callbackUrls,
+        logoutUrls: envConfig.logoutUrls,
       },
     });
 
     // Outputs
     new cdk.CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new cdk.CfnOutput(this, 'UserPoolClientId', { value: this.userPoolClient.userPoolClientId });
+    new cdk.CfnOutput(this, 'UserPoolDomain', { value: domain.domainName });
+    new cdk.CfnOutput(this, 'SignInUrl', {
+      value: domain.signInUrl(this.userPoolClient, {
+        redirectUri: envConfig.callbackUrls[0],
+      }),
+    });
   }
 }

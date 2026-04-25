@@ -19,6 +19,12 @@ export interface EnvConfig {
   vpcCidr: string;
   /** リソースの削除ポリシー */
   removalPolicy: cdk.RemovalPolicy;
+  /** Cognito ユーザープールドメインのプレフィックス */
+  cognitoDomainPrefix: string;
+  /** Cognito ログイン後のリダイレクト先 URL */
+  callbackUrls: string[];
+  /** Cognito ログアウト後のリダイレクト先 URL */
+  logoutUrls: string[];
 }
 
 /**
@@ -31,6 +37,9 @@ const configs: Record<EnvName, EnvConfig> = {
     region: 'ap-northeast-1',
     vpcCidr: '10.0.0.0/16',
     removalPolicy: cdk.RemovalPolicy.DESTROY,
+    cognitoDomainPrefix: `mimicloud-todo-dev-${process.env.USER ?? 'user'}`,
+    callbackUrls: ['http://localhost:3000/'],
+    logoutUrls: ['http://localhost:3000/'],
   },
   stg: {
     envName: 'stg',
@@ -38,6 +47,9 @@ const configs: Record<EnvName, EnvConfig> = {
     region: 'ap-northeast-1',
     vpcCidr: '10.1.0.0/16',
     removalPolicy: cdk.RemovalPolicy.RETAIN,
+    cognitoDomainPrefix: 'mimicloud-todo-stg',
+    callbackUrls: ['https://stg.example.com/'], // TODO: 実際のドメインに合わせる
+    logoutUrls: ['https://stg.example.com/'],
   },
   prd: {
     envName: 'prd',
@@ -45,6 +57,9 @@ const configs: Record<EnvName, EnvConfig> = {
     region: 'ap-northeast-1',
     vpcCidr: '10.2.0.0/16',
     removalPolicy: cdk.RemovalPolicy.RETAIN,
+    cognitoDomainPrefix: 'mimicloud-todo-prd',
+    callbackUrls: ['https://example.com/'], // TODO: 実際のドメインに合わせる
+    logoutUrls: ['https://example.com/'],
   },
 };
 
