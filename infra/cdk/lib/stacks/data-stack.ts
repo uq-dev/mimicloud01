@@ -12,20 +12,16 @@ import { MimiAurora } from '../constructs/aurora-cluster';
 export interface DataStackProps extends cdk.StackProps {
   /** デプロイ先の VPC */
   vpc: ec2.IVpc;
-  /** Aurora 用のセキュリティグループ */
-  auroraSg: ec2.ISecurityGroup;
 }
 
 /**
- * データストア (S3, DynamoDB, Aurora) を構成するスタックです。
+ * データストア (S3, DynamoDB) を構成するスタックです。
  */
 export class DataStack extends cdk.Stack {
   /** バックエンド用 S3 バケット */
   public readonly backendBucket: s3.Bucket;
   /** タスク管理用 DynamoDB テーブル */
   public readonly tasksTable: dynamodb.Table;
-  /** Aurora Serverless クラスター */
-  public readonly aurora: MimiAurora;
 
   constructor(scope: Construct, id: string, envConfig: EnvConfig, props: DataStackProps) {
     super(scope, id, props);
@@ -48,29 +44,35 @@ export class DataStack extends cdk.Stack {
     cdk.Tags.of(this.backendBucket).add('Name', resourceName(envName, 's3-back'));
 
     // DynamoDB: tasksテーブル（トランザクションデータ）
-    // ※ パーティションキー・ソートキーは要検討（現時点はtaskIdのみ）
     this.tasksTable = new dynamodb.Table(this, 'TasksTable', {
       tableName: resourceName(envName, 'dynamo', 'tasks'),
-      partitionKey: { name: 'taskId', type: dynamodb.AttributeType.STRING },
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'taskId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: envConfig.removalPolicy,
-      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: false },  // dev環境はオフ
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: false }, // dev環境はオフ
     });
-    cdk.Tags.of(this.tasksTable).add('Name', resourceName(envName, 'dynamo', 'tasks'));
 
-    // Aurora Serverless（マスタデータ）
-    this.aurora = new MimiAurora(this, 'Aurora', {
-      envName,
-      vpc: props.vpc,
-      securityGroup: props.auroraSg,
-      databaseName: 'todo',
-      removalPolicy: envConfig.removalPolicy,
+    // GSI1: 状態別・期限順検索 (userId + status_dueDate)
+    this.tasksTable.addGlobalSecondaryIndex({
+      indexName: 'GSI_StatusDueDate',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'status_dueDate', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
     });
+
+    // GSI2: 期限順検索 (userId + dueDate)
+    this.tasksTable.addGlobalSecondaryIndex({
+      indexName: 'GSI_DueDate',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'dueDate', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    cdk.Tags.of(this.tasksTable).add('Name', resourceName(envName, 'dynamo', 'tasks'));
 
     // Outputs
     new cdk.CfnOutput(this, 'BackendBucketName', { value: this.backendBucket.bucketName });
     new cdk.CfnOutput(this, 'TasksTableName', { value: this.tasksTable.tableName });
-    new cdk.CfnOutput(this, 'AuroraClusterArn', { value: this.aurora.cluster.clusterArn });
-    new cdk.CfnOutput(this, 'AuroraSecretArn', { value: this.aurora.secret.secretArn });
   }
 }

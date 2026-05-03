@@ -35,7 +35,6 @@ const frontendStack = new FrontendStack(app, `${prefix}FrontendStack`, envConfig
 const dataStack = new DataStack(app, `${prefix}DataStack`, envConfig, {
   env,
   vpc: networkStack.vpc,
-  auroraSg: networkStack.auroraSg,
 });
 dataStack.addDependency(networkStack);
 
@@ -49,7 +48,6 @@ const backendStack = new BackendStack(app, `${prefix}BackendStack`, envConfig, {
   backendBucketName: dataStack.backendBucket.bucketName,
   backendBucketArn: dataStack.backendBucket.bucketArn,
   userPool: authStack.userPool,
-  auroraSecretArn: dataStack.aurora.secret.secretArn,
 });
 backendStack.addDependency(networkStack);
 backendStack.addDependency(authStack);

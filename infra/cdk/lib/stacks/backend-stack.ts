@@ -25,8 +25,6 @@ export interface BackendStackProps extends cdk.StackProps {
   backendBucketArn: string;
   /** 認証に使用する Cognito ユーザープール */
   userPool: cognito.IUserPool;
-  /** Aurora のシークレット ARN */
-  auroraSecretArn: string;
 }
 
 /**
@@ -49,7 +47,6 @@ export class BackendStack extends cdk.Stack {
     const lambdaEnv = {
       TASKS_TABLE_NAME: props.tasksTableName,
       BACKEND_BUCKET_NAME: props.backendBucketName,
-      AURORA_SECRET_ARN: props.auroraSecretArn,
       ENV: envName,
     };
 
