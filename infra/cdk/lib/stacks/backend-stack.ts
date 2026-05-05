@@ -3,6 +3,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as path from 'path';
 import { Construct } from 'constructs';
 import { EnvConfig, resourceName, commonTags } from '../config/env';
 import { MimiLambda } from '../constructs/lambda-function';
@@ -32,7 +33,7 @@ export interface BackendStackProps extends cdk.StackProps {
  */
 export class BackendStack extends cdk.Stack {
   /** API Gateway リソース */
-  public readonly api: apigateway.RestApi;
+  public readonly api: apigateway.RestApiBase;
 
   constructor(scope: Construct, id: string, envConfig: EnvConfig, props: BackendStackProps) {
     super(scope, id, props);
@@ -115,49 +116,33 @@ export class BackendStack extends cdk.Stack {
       resources: [`${props.backendBucketArn}/*`],
     }));
 
-    // Cognito Authorizer
-    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
-      cognitoUserPools: [props.userPool],
-      authorizerName: resourceName(envName, 'apigw', 'authorizer'),
-    });
-
-    // API Gateway
-    this.api = new apigateway.RestApi(this, 'RestApi', {
+    // API Gateway (Swaggerで定義)
+    const api = new apigateway.SpecRestApi(this, 'RestApi', {
       restApiName: resourceName(envName, 'apigw'),
+      apiDefinition: apigateway.ApiDefinition.fromAsset(path.join(__dirname, 'api-definition.yaml')),
+      parameters: {
+        GetTasksLambdaArn: getTasks.function.functionArn,
+        PostTaskLambdaArn: postTask.function.functionArn,
+        UpdateTaskLambdaArn: updateTask.function.functionArn,
+        DeleteTaskLambdaArn: deleteTask.function.functionArn,
+        UserPoolArn: props.userPool.userPoolArn,
+      },
       deployOptions: {
         stageName: envName,
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
       },
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: ['Content-Type', 'Authorization'],
-      },
     });
-    this.api.applyRemovalPolicy(envConfig.removalPolicy);
+    api.applyRemovalPolicy(envConfig.removalPolicy);
+    this.api = api;
     cdk.Tags.of(this.api).add('Name', resourceName(envName, 'apigw'));
 
-    // ルーティング: /tasks
-    const tasks = this.api.root.addResource('tasks');
-    tasks.addMethod('GET', new apigateway.LambdaIntegration(getTasks.function), {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    });
-    tasks.addMethod('POST', new apigateway.LambdaIntegration(postTask.function), {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    });
-
-    // ルーティング: /tasks/{taskId}
-    const task = tasks.addResource('{taskId}');
-    task.addMethod('PUT', new apigateway.LambdaIntegration(updateTask.function), {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    });
-    task.addMethod('DELETE', new apigateway.LambdaIntegration(deleteTask.function), {
-      authorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
+    // API Gateway に Lambda 実行権限を付与
+    [getTasks, postTask, updateTask, deleteTask].forEach((mimiLambda) => {
+      mimiLambda.function.addPermission(`ApiGatewayInvoke-${mimiLambda.node.id}`, {
+        principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+        sourceArn: this.api.arnForExecuteApi(),
+      });
     });
 
     // Outputs
