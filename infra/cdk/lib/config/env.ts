@@ -12,9 +12,9 @@ export interface EnvConfig {
   /** 環境名 ('dev', 'stg', 'prd') */
   envName: EnvName;
   /** AWS アカウント ID */
-  account: string;
+  account?: string;
   /** デプロイ先のリージョン */
-  region: string;
+  region?: string;
   /** VPC の CIDR ブロック */
   vpcCidr: string;
   /** リソースの削除ポリシー */
@@ -33,17 +33,18 @@ export interface EnvConfig {
 const configs: Record<EnvName, EnvConfig> = {
   dev: {
     envName: 'dev',
-    account: process.env.CDK_DEFAULT_ACCOUNT ?? '',
+    account: '287216649646',
     region: 'ap-northeast-1',
+
     vpcCidr: '10.0.0.0/16',
     removalPolicy: cdk.RemovalPolicy.DESTROY,
-    cognitoDomainPrefix: `mimicloud-todo-dev-${process.env.USER ?? 'user'}`,
+    cognitoDomainPrefix: `mimicloud-todo-dev-${process.env.USER || process.env.USERNAME || 'user'}`,
     callbackUrls: ['http://localhost:3000/'],
     logoutUrls: ['http://localhost:3000/'],
   },
   stg: {
     envName: 'stg',
-    account: process.env.CDK_DEFAULT_ACCOUNT ?? '',
+    account: process.env.CDK_DEPLOY_ACCOUNT || process.env.CDK_DEFAULT_ACCOUNT,
     region: 'ap-northeast-1',
     vpcCidr: '10.1.0.0/16',
     removalPolicy: cdk.RemovalPolicy.RETAIN,
@@ -53,7 +54,7 @@ const configs: Record<EnvName, EnvConfig> = {
   },
   prd: {
     envName: 'prd',
-    account: process.env.CDK_DEFAULT_ACCOUNT ?? '',
+    account: process.env.CDK_DEPLOY_ACCOUNT || process.env.CDK_DEFAULT_ACCOUNT,
     region: 'ap-northeast-1',
     vpcCidr: '10.2.0.0/16',
     removalPolicy: cdk.RemovalPolicy.RETAIN,
@@ -62,6 +63,9 @@ const configs: Record<EnvName, EnvConfig> = {
     logoutUrls: ['https://example.com/'],
   },
 };
+
+
+
 
 /**
  * 指定された環境名に対応する設定を取得します。
