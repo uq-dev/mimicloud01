@@ -51,6 +51,7 @@ export class AuthStack extends cdk.Stack {
       userPoolClientName: resourceName(envName, 'userpool', 'web-client'),
       authFlows: {
         userSrp: true,
+        userPassword: true,
       },
       oAuth: {
         flows: { authorizationCodeGrant: true },
