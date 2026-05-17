@@ -29,25 +29,40 @@ def handler(event, context):
     # 更新対象の属性を抽出（送られてきたもののみ更新、それ以外は現在値を維持）
     title = body.get('title', current_item.get('title'))
     memo = body.get('memo', current_item.get('memo'))
-    due_date = body.get('dueDate', current_item.get('dueDate'))
     status = body.get('status', current_item.get('status'))
     location = body.get('location', current_item.get('location'))
     photos = body.get('photos', current_item.get('photos'))
 
+    if 'dueDate' in body:
+        raw_due_date = body.get('dueDate')
+        due_date = raw_due_date if raw_due_date else None
+        remove_due_date = raw_due_date is None or raw_due_date == ''
+    else:
+        due_date = current_item.get('dueDate')
+        remove_due_date = False
+
     update_fields = {
         'title': title,
         'memo': memo,
-        'dueDate': due_date,
         'status': status,
         'location': location,
         'photos': photos,
-        'status_dueDate': f"{status}#{due_date}",
+        'status_dueDate': f"{status}#{due_date or ''}",
         'updatedAt': now,
     }
 
+    if 'dueDate' in body and not remove_due_date:
+        update_fields['dueDate'] = due_date
+
     # UpdateExpressionの構築
-    update_expr = "SET " + ", ".join([f"#{k} = :{k}" for k in update_fields.keys()])
+    update_expr_parts = ["SET " + ", ".join([f"#{k} = :{k}" for k in update_fields.keys()])]
+    if remove_due_date:
+        update_expr_parts.append('REMOVE #dueDate')
+
+    update_expr = ' '.join(update_expr_parts)
     attr_names = {f"#{k}": k for k in update_fields.keys()}
+    if remove_due_date:
+        attr_names['#dueDate'] = 'dueDate'
     attr_values = {f":{k}": v for k, v in update_fields.items()}
 
     table.update_item(
