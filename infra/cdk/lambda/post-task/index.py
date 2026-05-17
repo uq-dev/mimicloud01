@@ -25,7 +25,6 @@ def handler(event, context):
         'taskId': task_id,
         'title': body.get('title', ''),
         'memo': body.get('memo', ''),
-        'dueDate': due_date,
         'status': status,
         'location': body.get('location', ''),
         'photos': body.get('photos', []),
@@ -33,7 +32,10 @@ def handler(event, context):
         'createdAt': now,
         'updatedAt': now,
     }
-    
+
+    if due_date:
+        item['dueDate'] = due_date
+
     table.put_item(Item=item)
 
     # フロントエンド向けにtaskIdをidとして返す
