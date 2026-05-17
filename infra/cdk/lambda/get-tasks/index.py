@@ -1,7 +1,7 @@
 import json
 import os
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Attr
 
 dynamo = boto3.resource('dynamodb')
 
@@ -11,18 +11,20 @@ def handler(event, context):
 
     query_params = event.get('queryStringParameters') or {}
     status = query_params.get('status')
+    location = query_params.get('location')
+
+    filter_expression = Attr('userId').eq(user_id)
 
     if status:
-        # GSI1を使用してステータス別に取得（期限順）
-        result = table.query(
-            IndexName='GSI_StatusDueDate',
-            KeyConditionExpression=Key('userId').eq(user_id) & Key('status_dueDate').begins_with(f"{status}#")
-        )
-    else:
-        # デフォルト：ユーザーの全タスクを取得
-        result = table.query(
-            KeyConditionExpression=Key('userId').eq(user_id)
-        )
+        # テーブルが taskId 単一キーのため、userId での取得は scan + FilterExpression で対応
+        filter_expression = filter_expression & Attr('status_dueDate').begins_with(f"{status}#")
+
+    if location:
+        filter_expression = filter_expression & Attr('location').eq(location)
+
+    result = table.scan(
+        FilterExpression=filter_expression
+    )
 
     items = result.get('Items', [])
     
