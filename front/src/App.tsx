@@ -1,31 +1,73 @@
 import { useState, useEffect } from 'react';
 import { Authenticator } from '@aws-amplify/ui-react';
+import { fetchAuthSession } from '@aws-amplify/core';
 import { get, post, put, del } from 'aws-amplify/api';
 import '@aws-amplify/ui-react/styles.css';
 import './App.css';
-import type { Todo } from './types';
+import type { Todo, TodoLocation, TodoStatus } from './types';
 import TodoList from './pages/TodoList';
 import TodoForm from './pages/TodoForm';
 import TodoDetail from './pages/TodoDetail';
 
 type View = 'LIST' | 'CREATE' | 'EDIT' | 'DETAIL';
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const session = await fetchAuthSession();
+    const idToken = session.tokens?.idToken?.toString?.();
+    console.debug('fetchAuthSession result:', { hasSession: !!session, idTokenPresent: !!idToken });
+    // API Gateway Cognito Authorizer expects the raw JWT in the Authorization header (no "Bearer " prefix)
+    return idToken ? { Authorization: idToken } : {};
+  } catch (error) {
+    console.error('Failed to get auth token:', error);
+    return {};
+  }
+}
+
 function AppContent({ signOut }: { signOut?: () => void, user?: any }) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('LIST');
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+  const [locationFilter, setLocationFilter] = useState<TodoLocation | 'すべて'>('すべて');
+  const [statusFilter, setStatusFilter] = useState<TodoStatus | 'すべて'>('すべて');
+  const [debugToken, setDebugToken] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTodos();
+    fetchTodos(locationFilter, statusFilter);
+  }, [locationFilter, statusFilter]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const t = headers.Authorization ?? null;
+        setDebugToken(t ? (t.length > 64 ? `${t.slice(0, 64)}...` : t) : null);
+        console.debug('debugToken set:', !!t);
+      } catch (e) {
+        console.error('failed to set debug token', e);
+      }
+    })();
   }, []);
 
-  const fetchTodos = async () => {
+  const fetchTodos = async (
+    filter: TodoLocation | 'すべて' = 'すべて',
+    status: TodoStatus | 'すべて' = 'すべて'
+  ) => {
     setLoading(true);
     try {
+      const headers = await getAuthHeaders();
+      const params: Record<string, string> = {};
+      if (filter !== 'すべて') params.location = filter;
+      if (status !== 'すべて') params.status = status;
+      const queryStringParameters = Object.keys(params).length ? params : undefined;
       const restOperation = get({
         apiName: 'TodoApi',
-        path: '/tasks'
+        path: '/tasks',
+        options: {
+          headers,
+          queryStringParameters,
+        } as any,
       });
       const { body } = await restOperation.response;
       const data = (await body.json()) as unknown as Todo[];
@@ -44,10 +86,12 @@ function AppContent({ signOut }: { signOut?: () => void, user?: any }) {
     const newStatus = todo.status === 'done' ? 'open' : 'done';
     
     try {
+      const headers = await getAuthHeaders();
       const restOperation = put({
         apiName: 'TodoApi',
         path: `/tasks/${id}`,
         options: {
+          headers,
           body: { ...todo, status: newStatus }
         }
       });
@@ -71,11 +115,13 @@ function AppContent({ signOut }: { signOut?: () => void, user?: any }) {
 
   const handleSaveTodo = async (todoData: Partial<Todo>) => {
     try {
+      const headers = await getAuthHeaders();
       if (view === 'CREATE') {
         const restOperation = post({
           apiName: 'TodoApi',
           path: '/tasks',
           options: {
+            headers,
             body: todoData
           }
         });
@@ -87,6 +133,7 @@ function AppContent({ signOut }: { signOut?: () => void, user?: any }) {
           apiName: 'TodoApi',
           path: `/tasks/${selectedTodo.id}`,
           options: {
+            headers,
             body: { ...selectedTodo, ...todoData }
           }
         });
@@ -105,9 +152,13 @@ function AppContent({ signOut }: { signOut?: () => void, user?: any }) {
   const handleDeleteTodo = async (id: string) => {
     if (window.confirm('このTodoを削除しますか？')) {
       try {
+        const headers = await getAuthHeaders();
         const restOperation = del({
           apiName: 'TodoApi',
-          path: `/tasks/${id}`
+          path: `/tasks/${id}`,
+          options: {
+            headers,
+          },
         });
         await restOperation.response;
         setTodos(prev => prev.filter(t => t.id !== id));
@@ -121,6 +172,11 @@ function AppContent({ signOut }: { signOut?: () => void, user?: any }) {
 
   return (
     <div className="container">
+      {/* Debug panel: shows whether Authorization header is present (dev only) */}
+      <div style={{ position: 'fixed', right: 8, bottom: 8, zIndex: 9999, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '6px 8px', borderRadius: 6, fontSize: 12 }}>
+        <div style={{ fontWeight: 600 }}>Auth Debug</div>
+        <div>token: {debugToken ? debugToken : <span style={{ opacity: 0.6 }}>null</span>}</div>
+      </div>
       <div className="phone">
         <div className="frame">
           <div className="sb">
@@ -137,6 +193,10 @@ function AppContent({ signOut }: { signOut?: () => void, user?: any }) {
               {view === 'LIST' && (
                 <TodoList 
                   todos={todos} 
+                  filter={locationFilter}
+                  statusFilter={statusFilter}
+                  onChangeFilter={(newFilter) => setLocationFilter(newFilter)}
+                  onChangeStatus={(newStatus) => setStatusFilter(newStatus)}
                   onToggleTodo={handleToggleTodo} 
                   onSelectTodo={handleSelectTodo}
                   onCreateTodo={() => setView('CREATE')}
